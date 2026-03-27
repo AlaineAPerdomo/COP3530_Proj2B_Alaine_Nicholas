@@ -1,7 +1,9 @@
+from time import perf_counter
+
 from PySide6.QtCore import QSignalBlocker, Qt
 from PySide6.QtWidgets import QHBoxLayout, QScrollArea, QVBoxLayout, QWidget
 
-from src.algorithms.merge_sort import merge_sort_with_steps
+from src.algorithms.merge_sort import merge_sort_songs
 from src.animations.animator import MergeSortAnimator
 from src.data.filters import sample_songs
 from src.models.song import Song
@@ -11,10 +13,12 @@ from src.ui.header import HeaderPanel
 from src.ui.metrics_panel import MetricsPanel
 from src.ui.playlist_panel import PlaylistPanel
 from src.ui.sidebar import SidebarPanel
+from src.visualization.merge_sort_steps import merge_sort_with_steps
 
 
 class MainLayout(QWidget):
     DEFAULT_ANIMATION_SPEED_MS = 360
+    VISUALIZATION_LIMIT = 50
     DEFAULT_FEATURE = "danceability"
     DEFAULT_ALGORITHM = "Merge Sort"
     DEFAULT_ORDER = "Ascending"
@@ -35,6 +39,7 @@ class MainLayout(QWidget):
         root_layout.setSpacing(14)
 
         self.sidebar = SidebarPanel()
+        self.sidebar.set_sample_size_limit(len(self.all_songs))
         sidebar_scroll = self._build_column_scroll_area(
             object_name="SidebarScrollArea",
             content_widget=self.sidebar,
@@ -91,7 +96,7 @@ class MainLayout(QWidget):
         if self.animator is not None:
             self.animator.stop()
 
-        self._reload_dataset_sample(self.sidebar.sample_spinbox.value())
+        self._reload_dataset_sample(self.sidebar.sample_size_value())
         self.playlist.end_animation_highlighting()
         self.playlist.clear_all_highlights()
         self.playlist.table.clearSelection()
@@ -113,8 +118,8 @@ class MainLayout(QWidget):
             self.sidebar.feature_dropdown.setCurrentText(self.DEFAULT_FEATURE)
         with QSignalBlocker(self.sidebar.order_dropdown):
             self.sidebar.order_dropdown.setCurrentText(self.DEFAULT_ORDER)
-        with QSignalBlocker(self.sidebar.sample_spinbox):
-            self.sidebar.sample_spinbox.setValue(self.DEFAULT_SAMPLE_SIZE)
+        with QSignalBlocker(self.sidebar.sample_slider):
+            self.sidebar.set_sample_size_value(self.DEFAULT_SAMPLE_SIZE)
 
         self._reload_dataset_sample(self.DEFAULT_SAMPLE_SIZE)
         self.playlist.table.clearSelection()
@@ -130,6 +135,10 @@ class MainLayout(QWidget):
         self.detail_panel.reset_view()
 
     def run_merge_sort_animation(self) -> None:
+        if len(self.original_songs) > self.VISUALIZATION_LIMIT:
+            self.run_merge_sort_benchmark()
+            return
+
         self.header.set_algorithm("Merge Sort")
         self.header.set_status("Animating")
 
@@ -146,6 +155,29 @@ class MainLayout(QWidget):
             speed_ms=self.DEFAULT_ANIMATION_SPEED_MS,
         )
         self.animator.start()
+
+    def run_merge_sort_benchmark(self) -> None:
+        self.playlist.end_animation_highlighting()
+        self.playlist.clear_all_highlights()
+        self.header.set_algorithm("Merge Sort")
+        self.header.set_status("Benchmark Sorting")
+
+        start_time = perf_counter()
+        self.visual_songs = merge_sort_songs(
+            self.original_songs,
+            feature=self.current_feature,
+            ascending=self.sidebar.order_dropdown.currentText() == "Ascending",
+        )
+        runtime_ms = int((perf_counter() - start_time) * 1000)
+
+        self.playlist.load_songs(self.visual_songs, feature=self.current_feature)
+        self.playlist.table.clearSelection()
+        self.header.set_status("Benchmark Completed")
+        self.metrics.set_comparisons(0)
+        self.metrics.set_moves(0)
+        self.metrics.set_overwrites(0)
+        self.metrics.set_steps(0)
+        self.metrics.set_runtime_ms(runtime_ms)
 
     def prepare_for_animation(self) -> None:
         self.visual_songs = self.original_songs[:]
@@ -232,3 +264,14 @@ class MainLayout(QWidget):
         self.header.set_feature(self.current_feature)
         self.header.set_dataset_size(len(self.original_songs))
         self.playlist.load_songs(self.visual_songs, feature=self.current_feature)
+        self._update_mode_ui()
+
+    def _update_mode_ui(self) -> None:
+        if len(self.original_songs) <= self.VISUALIZATION_LIMIT:
+            self.sidebar.animate_button.setText("Animate Sort")
+            self.sidebar.animate_button.setToolTip("Record steps and animate merge sort.")
+        else:
+            self.sidebar.animate_button.setText("Run Benchmark Sort")
+            self.sidebar.animate_button.setToolTip(
+                "Visualization is disabled above 50 rows. This runs merge sort without step logging."
+            )

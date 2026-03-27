@@ -39,9 +39,6 @@ class PlaylistPanel(QFrame):
         title = QLabel("Curated Playlist Workspace")
         title.setObjectName("SectionTitle")
 
-        subtitle = QLabel("Track movement, compare rows, and watch the order settle into place.")
-        subtitle.setObjectName("MutedText")
-
         self.table = QTableWidget()
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(["Track", "Artist", "Year", "Feature"])
@@ -62,7 +59,6 @@ class PlaylistPanel(QFrame):
 
         layout.addWidget(eyebrow)
         layout.addWidget(title)
-        layout.addWidget(subtitle)
         layout.addWidget(self.table)
 
     def begin_animation_highlighting(self) -> None:
@@ -77,6 +73,9 @@ class PlaylistPanel(QFrame):
         self.current_songs = songs[:]
         self.current_feature = feature
 
+        self.table.setUpdatesEnabled(False)
+        self.table.clearSelection()
+        self.table.clearContents()
         self.table.setRowCount(len(songs))
 
         for row_index, song in enumerate(songs):
@@ -84,6 +83,7 @@ class PlaylistPanel(QFrame):
             self.table.setRowHeight(row_index, 54)
 
         self.table.resizeColumnsToContents()
+        self.table.setUpdatesEnabled(True)
 
     def _write_song_to_row(self, row_index: int, song: Song) -> None:
         song_item = QTableWidgetItem(song.name)
