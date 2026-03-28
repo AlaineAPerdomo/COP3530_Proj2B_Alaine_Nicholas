@@ -138,10 +138,10 @@ void quickSort(vector<Song>& v,string d,int h,int l){
 //add pragma once to song or move song.h to this file
 int main(){
     vector<Song> v=load_datafile();
-    string s="energy";
+    auto start=chrono::high_resolution_clock::now();
     quickSort(v,s,v.size()-1,0);
-    for(auto i:v){
-        cout<<i.name<<i.artist<<i.year<<" "<<i.energy<<endl;
-    }
+    auto stop=chrono::high_resolution_clock::now();
+    auto time=chrono::duration_cast<chrono::milliseconds>(stop-start);
+    cout<<"Time elapsed: "<<time.count()<<" ms"<<endl;
     return 0;
 }
