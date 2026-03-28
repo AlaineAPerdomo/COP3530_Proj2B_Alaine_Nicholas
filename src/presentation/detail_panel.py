@@ -76,8 +76,8 @@ class DetailPanel(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("DetailPanel")
-        self.setMinimumWidth(390)
-        self.setMaximumWidth(500)
+        self.setMinimumWidth(350)
+        self.setMaximumWidth(430)
 
         self.all_songs: list[Song] = []
         self.current_song: Song | None = None
@@ -195,6 +195,11 @@ class DetailPanel(QFrame):
         outer_layout.addWidget(scroll_area)
         self._set_controls_enabled(False)
         self.radar_chart.plot_profile({feature: 0.0 for feature in RADAR_FEATURES})
+        self.set_layout_mode(performance_mode=False)
+
+    def set_layout_mode(self, performance_mode: bool) -> None:
+        self.setMinimumWidth(350 if performance_mode else 390)
+        self.setMaximumWidth(430 if performance_mode else 500)
 
     def set_song_catalog(self, songs: list[Song]) -> None:
         self.all_songs = songs[:]

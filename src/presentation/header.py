@@ -11,9 +11,10 @@ class HeaderPanel(QFrame):
 
         outer_layout = QHBoxLayout(self)
         outer_layout.setContentsMargins(24, 24, 24, 24)
-        outer_layout.setSpacing(20)
+        outer_layout.setSpacing(16)
 
         artwork = QLabel("MIX")
+        self.artwork = artwork
         artwork.setObjectName("HeroArtwork")
         artwork.setAlignment(Qt.AlignCenter)
         artwork.setFixedSize(140, 140)
@@ -43,19 +44,18 @@ class HeaderPanel(QFrame):
         self.mode = QLabel("Mode: Animation")
         self.mode.setObjectName("InfoChip")
 
-        chip_row = QWidget()
-        chip_layout = QHBoxLayout(chip_row)
-        chip_layout.setContentsMargins(0, 0, 0, 0)
-        chip_layout.setSpacing(10)
-        chip_layout.addWidget(self.status)
-        chip_layout.addWidget(self.algorithm)
-        chip_layout.addWidget(self.feature)
-        chip_layout.addWidget(self.dataset)
-        chip_layout.addWidget(self.mode)
-        chip_layout.addStretch()
+        self.chip_row = QWidget()
+        self.chip_layout = QHBoxLayout(self.chip_row)
+        self.chip_layout.setContentsMargins(0, 0, 0, 0)
+        self.chip_layout.setSpacing(10)
 
-        legend_row = QWidget()
-        legend_layout = QHBoxLayout(legend_row)
+        self.chip_row_bottom = QWidget()
+        self.chip_row_bottom_layout = QHBoxLayout(self.chip_row_bottom)
+        self.chip_row_bottom_layout.setContentsMargins(0, 0, 0, 0)
+        self.chip_row_bottom_layout.setSpacing(10)
+
+        self.legend_row = QWidget()
+        legend_layout = QHBoxLayout(self.legend_row)
         legend_layout.setContentsMargins(0, 0, 0, 0)
         legend_layout.setSpacing(10)
 
@@ -70,13 +70,22 @@ class HeaderPanel(QFrame):
         left_column.addWidget(self.eyebrow)
         left_column.addWidget(self.title)
         left_column.addSpacing(6)
-        left_column.addWidget(chip_row)
-        left_column.addWidget(legend_row)
+        left_column.addWidget(self.chip_row)
+        left_column.addWidget(self.chip_row_bottom)
+        left_column.addWidget(self.legend_row)
 
         outer_layout.addWidget(artwork, 0, Qt.AlignTop)
         outer_layout.addLayout(left_column, 1)
 
-        set_transparent_surface(self.eyebrow, self.title, chip_row, legend_row, legend_title)
+        set_transparent_surface(
+            self.eyebrow,
+            self.title,
+            self.chip_row,
+            self.chip_row_bottom,
+            self.legend_row,
+            legend_title,
+        )
+        self.set_mode(performance_mode=False)
 
     def set_status(self, text: str) -> None:
         self.status.setText(f"Status: {text}")
@@ -95,6 +104,36 @@ class HeaderPanel(QFrame):
         self.mode.setText(
             "Mode: Performance" if performance_mode else "Mode: Animation"
         )
+        self.artwork.setFixedSize(124, 124) if performance_mode else self.artwork.setFixedSize(140, 140)
+        self._rebuild_chip_rows(performance_mode)
+        self.legend_row.setVisible(not performance_mode)
+
+    def _rebuild_chip_rows(self, performance_mode: bool) -> None:
+        self._clear_layout(self.chip_layout)
+        self._clear_layout(self.chip_row_bottom_layout)
+
+        self.chip_layout.addWidget(self.status)
+        self.chip_layout.addWidget(self.algorithm)
+        self.chip_layout.addWidget(self.feature)
+
+        if performance_mode:
+            self.chip_layout.addStretch()
+            self.chip_row_bottom_layout.addWidget(self.dataset)
+            self.chip_row_bottom_layout.addWidget(self.mode)
+            self.chip_row_bottom_layout.addStretch()
+            self.chip_row_bottom.setVisible(True)
+        else:
+            self.chip_layout.addWidget(self.dataset)
+            self.chip_layout.addWidget(self.mode)
+            self.chip_layout.addStretch()
+            self.chip_row_bottom.setVisible(False)
+
+    def _clear_layout(self, layout: QHBoxLayout) -> None:
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
 
     def _build_legend_chip(self, color: str, label_text: str) -> QWidget:
         chip = QWidget()

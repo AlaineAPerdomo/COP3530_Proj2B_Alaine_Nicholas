@@ -109,8 +109,8 @@ class SidebarPanel(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("SidebarPanel")
-        self.setMinimumWidth(220)
-        self.setMaximumWidth(300)
+        self.setMinimumWidth(240)
+        self.setMaximumWidth(290)
         self._sample_max_size = 500
 
         layout = QVBoxLayout(self)
@@ -150,34 +150,37 @@ class SidebarPanel(QFrame):
         sample_row = QWidget()
         sample_row_layout = QHBoxLayout(sample_row)
         sample_row_layout.setContentsMargins(0, 0, 0, 0)
-        sample_row_layout.setSpacing(10)
+        sample_row_layout.setSpacing(12)
 
         knob_column = QWidget()
         knob_column.setObjectName("KnobColumn")
         knob_layout = QVBoxLayout(knob_column)
         knob_layout.setContentsMargins(0, 0, 0, 0)
-        knob_layout.setSpacing(8)
+        knob_layout.setSpacing(6)
         knob_layout.setAlignment(Qt.AlignCenter)
 
         self.sample_value_label = QLabel("25")
         self.sample_value_label.setObjectName("ModeChip")
         self.sample_value_label.setAlignment(Qt.AlignCenter)
+        self.sample_value_label.setMinimumHeight(40)
 
         self.sample_mode_label = QLabel("Animation Mode")
         self.sample_mode_label.setObjectName("ModeChip")
         self.sample_mode_label.setAlignment(Qt.AlignCenter)
+        self.sample_mode_label.setWordWrap(True)
+        self.sample_mode_label.setMinimumHeight(40)
 
         self.sample_knob = SampleSizeDial()
         self.sample_knob.setRange(0, self._dial_maximum())
         self.sample_knob.setValue(self._sample_size_to_dial_position(25))
         self.sample_knob.setWrapping(False)
         self.sample_knob.setPageStep(1)
-        self.sample_knob.setFixedSize(104, 104)
+        self.sample_knob.setFixedSize(98, 98)
         self.sample_knob.valueChanged.connect(self._update_sample_size_ui)
 
         knob_shell = QFrame()
         knob_shell.setObjectName("KnobShell")
-        knob_shell.setFixedSize(124, 124)
+        knob_shell.setFixedSize(116, 116)
         knob_shell_layout = QVBoxLayout(knob_shell)
         knob_shell_layout.setContentsMargins(0, 0, 0, 0)
         knob_shell_layout.setAlignment(Qt.AlignCenter)
@@ -201,7 +204,7 @@ class SidebarPanel(QFrame):
         sample_meta_column = QWidget()
         sample_meta_layout = QVBoxLayout(sample_meta_column)
         sample_meta_layout.setContentsMargins(0, 0, 0, 0)
-        sample_meta_layout.setSpacing(8)
+        sample_meta_layout.setSpacing(10)
         sample_meta_layout.addWidget(self.sample_value_label)
         sample_meta_layout.addWidget(self.sample_mode_label)
         sample_meta_layout.addWidget(animation_note)
@@ -262,6 +265,7 @@ class SidebarPanel(QFrame):
         self._sample_min_max_label = min_max_label
         self._animation_note_label = animation_note
         self._update_sample_size_ui(self.sample_knob.value())
+        self.set_layout_mode(performance_mode=False)
 
     def set_sample_size_limit(self, max_size: int) -> None:
         self._sample_max_size = max(self.MIN_SAMPLE_SIZE, max_size)
@@ -333,6 +337,18 @@ class SidebarPanel(QFrame):
         self._refresh_widget_style(self.compare_button)
         self._refresh_widget_style(self.sample_mode_label)
         self._refresh_widget_style(self.sample_value_label)
+
+    def set_layout_mode(self, performance_mode: bool) -> None:
+        self.setMinimumWidth(240 if performance_mode else 220)
+        self.setMaximumWidth(290 if performance_mode else 300)
+
+        knob_size = 98 if performance_mode else 104
+        shell_size = 116 if performance_mode else 124
+        self.sample_knob.setFixedSize(knob_size, knob_size)
+        self.findChild(QFrame, "KnobShell").setFixedSize(shell_size, shell_size)
+
+        self.sample_value_label.setMinimumHeight(40 if performance_mode else 0)
+        self.sample_mode_label.setMinimumHeight(40 if performance_mode else 0)
 
     def _refresh_widget_style(self, widget: QWidget) -> None:
         widget.style().unpolish(widget)

@@ -39,13 +39,13 @@ class MainLayout(QWidget):
         self.benchmark_thread: QThread | None = None
         self.benchmark_worker: BenchmarkWorker | None = None
 
-        root_layout = QHBoxLayout(self)
-        root_layout.setContentsMargins(14, 14, 14, 14)
-        root_layout.setSpacing(14)
+        self.root_layout = QHBoxLayout(self)
+        self.root_layout.setContentsMargins(14, 14, 14, 14)
+        self.root_layout.setSpacing(14)
 
         self.sidebar = SidebarPanel()
         self.sidebar.set_sample_size_limit(len(self.all_songs))
-        sidebar_scroll = self._build_column_scroll_area(
+        self.sidebar_scroll = self._build_column_scroll_area(
             object_name="SidebarScrollArea",
             content_widget=self.sidebar,
         )
@@ -60,12 +60,10 @@ class MainLayout(QWidget):
         self.playlist = PlaylistPanel()
         self.metrics = MetricsPanel()
 
-        self._reload_dataset_sample(self.DEFAULT_SAMPLE_SIZE)
-
         center_layout.addWidget(self.header, 1)
         center_layout.addWidget(self.playlist, 5)
         center_layout.addWidget(self.metrics, 1)
-        center_scroll = self._build_column_scroll_area(
+        self.center_scroll = self._build_column_scroll_area(
             object_name="CenterScrollArea",
             content_widget=center_container,
         )
@@ -73,9 +71,11 @@ class MainLayout(QWidget):
         self.detail_panel = DetailPanel()
         self.detail_panel.set_song_catalog(self.all_songs)
 
-        root_layout.addWidget(sidebar_scroll, 1)
-        root_layout.addWidget(center_scroll, 3)
-        root_layout.addWidget(self.detail_panel, 1)
+        self.root_layout.addWidget(self.sidebar_scroll, 1)
+        self.root_layout.addWidget(self.center_scroll, 3)
+        self.root_layout.addWidget(self.detail_panel, 1)
+
+        self._reload_dataset_sample(self.DEFAULT_SAMPLE_SIZE)
 
         self.playlist.table.itemSelectionChanged.connect(self.handle_song_selection)
         self.sidebar.animate_button.clicked.connect(self.run_merge_sort_animation)
@@ -339,6 +339,11 @@ class MainLayout(QWidget):
         self.sidebar.set_sort_mode(not performance_mode)
         self.header.set_mode(performance_mode)
         self.header.set_dataset_size(len(self.original_songs), performance_mode=performance_mode)
+        self.sidebar.set_layout_mode(performance_mode)
+        self.detail_panel.set_layout_mode(performance_mode)
+        self.root_layout.setStretch(0, 18 if performance_mode else 1)
+        self.root_layout.setStretch(1, 64 if performance_mode else 3)
+        self.root_layout.setStretch(2, 18 if performance_mode else 1)
         self.playlist.set_workspace_mode(
             performance_mode=performance_mode,
             dataset_size=len(self.original_songs),
