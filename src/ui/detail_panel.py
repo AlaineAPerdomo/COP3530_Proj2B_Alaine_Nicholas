@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QSlider,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 
 from src.data.similarity import rank_similar_songs
@@ -25,11 +26,22 @@ from src.utils.constants import RADAR_FEATURES
 
 
 class RadarChartCanvas(FigureCanvasQTAgg):
+    LABELS = {
+        "danceability": "Dance",
+        "energy": "Energy",
+        "valence": "Valence",
+        "acousticness": "Acoustic",
+        "speechiness": "Speech",
+        "tempo": "Tempo",
+    }
+
     def __init__(self):
-        self.figure = Figure(figsize=(3.4, 3.0), facecolor="#171718")
+        self.figure = Figure(figsize=(3.0, 2.7), facecolor="#171718")
         self.axis = self.figure.add_subplot(111, polar=True)
         super().__init__(self.figure)
         self.setStyleSheet("background: transparent;")
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setFixedSize(232, 214)
         self._angles = [
             angle for angle in [index * (2 * pi / len(RADAR_FEATURES)) for index in range(len(RADAR_FEATURES))]
         ]
@@ -44,8 +56,9 @@ class RadarChartCanvas(FigureCanvasQTAgg):
         self.axis.grid(color="#2d3748", alpha=0.9, linewidth=0.8)
         self.axis.spines["polar"].set_color("#334155")
         self.axis.set_xticks(self._angles[:-1])
-        self.axis.set_xticklabels([feature.title() for feature in RADAR_FEATURES])
-        self.axis.tick_params(axis="x", colors="#cbd5e1", labelsize=9, pad=6)
+        self.axis.set_xticklabels([self.LABELS[feature] for feature in RADAR_FEATURES])
+        self.axis.tick_params(axis="x", colors="#cbd5e1", labelsize=7, pad=6)
+        self.axis.set_position([0.20, 0.18, 0.60, 0.60])
 
     def plot_profile(self, profile: dict[str, float]) -> None:
         values = [profile[feature] for feature in RADAR_FEATURES]
@@ -55,7 +68,6 @@ class RadarChartCanvas(FigureCanvasQTAgg):
         self._configure_axis()
         self.axis.plot(self._angles, values, color="#ff5d7a", linewidth=2.4)
         self.axis.fill(self._angles, values, color="#2f7dff", alpha=0.24)
-        self.figure.tight_layout(pad=1.2)
         self.draw_idle()
 
 
@@ -63,8 +75,8 @@ class DetailPanel(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("DetailPanel")
-        self.setMinimumWidth(280)
-        self.setMaximumWidth(420)
+        self.setMinimumWidth(390)
+        self.setMaximumWidth(500)
 
         self.all_songs: list[Song] = []
         self.current_song: Song | None = None
@@ -88,23 +100,38 @@ class DetailPanel(QFrame):
 
         title = QLabel("Now Inspecting")
         title.setObjectName("SectionTitle")
+        title.setProperty("surface", "transparent")
 
         subtitle = QLabel("A closer look at the song currently in focus.")
         subtitle.setObjectName("MutedText")
+        subtitle.setProperty("surface", "transparent")
+        subtitle.setWordWrap(True)
 
         self.radar_chart = RadarChartCanvas()
-        self.radar_chart.setFixedHeight(260)
+
+        chart_row = QWidget()
+        chart_row.setProperty("surface", "transparent")
+        chart_layout = QHBoxLayout(chart_row)
+        chart_layout.setContentsMargins(6, 0, 6, 0)
+        chart_layout.addStretch()
+        chart_layout.addWidget(self.radar_chart, 0, Qt.AlignHCenter)
+        chart_layout.addStretch()
 
         self.song_name = QLabel("Select a song")
         self.song_name.setObjectName("HeroSubtitle")
+        self.song_name.setProperty("surface", "transparent")
+        self.song_name.setWordWrap(True)
 
         self.song_meta = QLabel("Artist • Year")
         self.song_meta.setObjectName("MutedText")
+        self.song_meta.setProperty("surface", "transparent")
+        self.song_meta.setWordWrap(True)
 
         self.state_label = QLabel("Role: Not active")
         self.state_label.setObjectName("StatusBadge")
 
         stat_row = QWidget()
+        stat_row.setProperty("surface", "transparent")
         stat_layout = QHBoxLayout(stat_row)
         stat_layout.setContentsMargins(0, 0, 0, 0)
         stat_layout.setSpacing(10)
@@ -119,11 +146,15 @@ class DetailPanel(QFrame):
 
         slider_title = QLabel("Adjust Sound Profile")
         slider_title.setObjectName("SectionTitle")
+        slider_title.setProperty("surface", "transparent")
 
         slider_subtitle = QLabel("Adjust the core audio traits and see the profile change live.")
         slider_subtitle.setObjectName("MutedText")
+        slider_subtitle.setProperty("surface", "transparent")
+        slider_subtitle.setWordWrap(True)
 
         slider_panel = QWidget()
+        slider_panel.setProperty("surface", "transparent")
         slider_layout = QVBoxLayout(slider_panel)
         slider_layout.setContentsMargins(0, 0, 0, 0)
         slider_layout.setSpacing(10)
@@ -135,14 +166,17 @@ class DetailPanel(QFrame):
 
         similar_title = QLabel("Similar Songs")
         similar_title.setObjectName("SectionTitle")
+        similar_title.setProperty("surface", "transparent")
 
         self.similar_list = QListWidget()
         self.similar_list.setObjectName("SimilarSongsList")
         self.similar_list.setMinimumHeight(180)
+        self.similar_list.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.similar_list.setWordWrap(True)
 
         layout.addWidget(title)
         layout.addWidget(subtitle)
-        layout.addWidget(self.radar_chart)
+        layout.addWidget(chart_row)
         layout.addWidget(self.song_name)
         layout.addWidget(self.song_meta)
         layout.addWidget(self.state_label)
@@ -182,20 +216,24 @@ class DetailPanel(QFrame):
 
     def _make_slider_row(self, feature_name: str) -> dict:
         container = QWidget()
+        container.setProperty("surface", "transparent")
         row_layout = QVBoxLayout(container)
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.setSpacing(6)
 
         header = QWidget()
+        header.setProperty("surface", "transparent")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(8)
 
         label = QLabel(feature_name.title())
         label.setObjectName("MetricLabel")
+        label.setProperty("surface", "transparent")
 
         value = QLabel("0%")
         value.setObjectName("MutedText")
+        value.setProperty("surface", "transparent")
 
         header_layout.addWidget(label)
         header_layout.addStretch()

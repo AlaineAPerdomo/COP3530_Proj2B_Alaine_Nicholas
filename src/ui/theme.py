@@ -36,6 +36,20 @@ QLabel#MutedText {
     font-size: 12px;
 }
 
+QLabel#KnobCaption {
+    color: #d4d9e6;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+QLabel#KnobNote {
+    color: #9ea6bc;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
 QLabel#SidebarTitle {
     font-size: 28px;
     font-weight: 800;
@@ -68,7 +82,8 @@ QLabel#Eyebrow {
 QLabel#Pill,
 QLabel#InfoChip,
 QLabel#StatusBadge,
-QWidget#LegendChip {
+QWidget#LegendChip,
+QLabel#ModeChip {
     background-color: #222225;
     border: 1px solid #33343a;
     border-radius: 13px;
@@ -78,8 +93,21 @@ QWidget#LegendChip {
 
 QLabel#Pill,
 QLabel#InfoChip,
-QLabel#StatusBadge {
+QLabel#StatusBadge,
+QLabel#ModeChip {
     padding: 6px 12px;
+}
+
+QLabel#ModeChip[modeState="animation"] {
+    background-color: #14311f;
+    border: 1px solid #2b7a4b;
+    color: #c7f9d7;
+}
+
+QLabel#ModeChip[modeState="performance"] {
+    background-color: #3a2711;
+    border: 1px solid #a16207;
+    color: #fde68a;
 }
 
 QLabel#StatusBadge {
@@ -141,8 +169,17 @@ QPushButton#PrimaryButton {
     border: none;
 }
 
+QPushButton#PrimaryButton[sortMode="performance"] {
+    background-color: #2f7dff;
+    color: #f5f9ff;
+}
+
 QPushButton#PrimaryButton:hover {
     background-color: #3be477;
+}
+
+QPushButton#PrimaryButton[sortMode="performance"]:hover {
+    background-color: #4d92ff;
 }
 
 QPushButton#SecondaryButton:hover,
@@ -169,6 +206,24 @@ QComboBox QAbstractItemView {
     color: #f7f8fd;
     border: 1px solid #34363d;
     selection-background-color: #2a2d35;
+}
+
+QProgressBar#BenchmarkProgress {
+    background-color: #111214;
+    border: 1px solid #34363d;
+    border-radius: 10px;
+    color: #eef4ff;
+    min-height: 16px;
+    text-align: center;
+}
+
+QProgressBar#BenchmarkProgress::chunk {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 0,
+        stop: 0 #2f7dff,
+        stop: 1 #1ed760
+    );
+    border-radius: 9px;
 }
 
 QListWidget#SimilarSongsList {
@@ -202,6 +257,12 @@ QWidget#DetailScrollContent {
     background-color: transparent;
 }
 
+QWidget[surface="transparent"],
+QLabel[surface="transparent"] {
+    background-color: transparent;
+    border: none;
+}
+
 QScrollBar:vertical {
     background: transparent;
     width: 10px;
@@ -226,23 +287,20 @@ QScrollBar::sub-page:vertical {
     height: 0px;
 }
 
-QSlider::groove:horizontal {
-    height: 6px;
-    background: #2f3137;
-    border-radius: 3px;
+QDial#SampleKnob {
+    background: transparent;
+    border: none;
 }
 
-QSlider::sub-page:horizontal {
-    background: #1ed760;
-    border-radius: 3px;
-}
-
-QSlider::handle:horizontal {
-    background: #f8fafc;
-    border: 2px solid #1ed760;
-    width: 18px;
-    margin: -7px 0;
-    border-radius: 9px;
+QFrame#KnobShell {
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 1, y2: 1,
+        stop: 0 #191c22,
+        stop: 0.5 #101217,
+        stop: 1 #1b1f28
+    );
+    border: 1px solid #303642;
+    border-radius: 30px;
 }
 
 QTableWidget {
@@ -263,7 +321,7 @@ QTableWidget::item {
 
 QTableWidget::item:selected {
     background-color: #21242c;
-    border-radius: 14px;
+    border: none;
 }
 
 QHeaderView::section {

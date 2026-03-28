@@ -46,11 +46,6 @@ def _merge_sort_recursive(
     recorder: StepRecorder,
 ) -> None:
     if left_index >= right_index:
-        recorder.record(
-            "sorted_range",
-            left=left_index,
-            right=right_index,
-        )
         return
 
     midpoint = (left_index + right_index) // 2
@@ -101,13 +96,6 @@ def _merge(
             "compare",
             left_index=left_index + left_pointer,
             right_index=midpoint + 1 + right_pointer,
-            left_song_id=left_song.id,
-            right_song_id=right_song.id,
-            left_song_name=left_song.name,
-            right_song_name=right_song.name,
-            left_value=left_value,
-            right_value=right_value,
-            feature=feature,
         )
 
         if should_take_left(left_value, right_value, ascending):
@@ -115,9 +103,6 @@ def _merge(
                 "take_left",
                 source_index=left_index + left_pointer,
                 target_index=merged_pointer,
-                song_id=left_song.id,
-                song_name=left_song.name,
-                value=left_value,
             )
             songs[merged_pointer] = left_song
             left_pointer += 1
@@ -126,9 +111,6 @@ def _merge(
                 "take_right",
                 source_index=midpoint + 1 + right_pointer,
                 target_index=merged_pointer,
-                song_id=right_song.id,
-                song_name=right_song.name,
-                value=right_value,
             )
             songs[merged_pointer] = right_song
             right_pointer += 1
@@ -137,8 +119,6 @@ def _merge(
             "overwrite",
             index=merged_pointer,
             song_id=songs[merged_pointer].id,
-            song_name=songs[merged_pointer].name,
-            value=songs[merged_pointer].get_feature_value(feature),
         )
 
         merged_pointer += 1
@@ -151,9 +131,6 @@ def _merge(
             "take_left",
             source_index=left_index + left_pointer,
             target_index=merged_pointer,
-            song_id=left_song.id,
-            song_name=left_song.name,
-            value=left_value,
         )
 
         songs[merged_pointer] = left_song
@@ -162,8 +139,6 @@ def _merge(
             "overwrite",
             index=merged_pointer,
             song_id=left_song.id,
-            song_name=left_song.name,
-            value=left_value,
         )
 
         left_pointer += 1
@@ -177,9 +152,6 @@ def _merge(
             "take_right",
             source_index=midpoint + 1 + right_pointer,
             target_index=merged_pointer,
-            song_id=right_song.id,
-            song_name=right_song.name,
-            value=right_value,
         )
 
         songs[merged_pointer] = right_song
@@ -188,8 +160,6 @@ def _merge(
             "overwrite",
             index=merged_pointer,
             song_id=right_song.id,
-            song_name=right_song.name,
-            value=right_value,
         )
 
         right_pointer += 1

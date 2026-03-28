@@ -3,11 +3,13 @@ from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
+    QGridLayout,
     QLabel,
     QHeaderView,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QWidget,
 )
 
 from src.models.song import Song
@@ -18,7 +20,7 @@ class PlaylistPanel(QFrame):
         QTableWidget::item:selected {
             background-color: #21242c;
             color: #f5f7fb;
-            border-radius: 14px;
+            border: none;
         }
     """
 
@@ -28,16 +30,51 @@ class PlaylistPanel(QFrame):
 
         self.current_songs: list[Song] = []
         self.current_feature = "danceability"
+        self._highlighted_rows: set[int] = set()
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(12)
 
-        eyebrow = QLabel("Queue")
-        eyebrow.setObjectName("Eyebrow")
+        self.eyebrow = QLabel("Queue")
+        self.eyebrow.setObjectName("Eyebrow")
+        self.eyebrow.setProperty("surface", "transparent")
 
-        title = QLabel("Curated Playlist Workspace")
-        title.setObjectName("SectionTitle")
+        self.title = QLabel("Curated Playlist Workspace")
+        self.title.setObjectName("SectionTitle")
+        self.title.setProperty("surface", "transparent")
+
+        self.subtitle = QLabel("Full playlist preview with animation-ready row tracking.")
+        self.subtitle.setObjectName("MutedText")
+        self.subtitle.setProperty("surface", "transparent")
+        self.subtitle.setWordWrap(True)
+
+        self.summary_panel = QWidget()
+        self.summary_panel.setProperty("surface", "transparent")
+        summary_layout = QGridLayout(self.summary_panel)
+        summary_layout.setContentsMargins(0, 0, 0, 0)
+        summary_layout.setHorizontalSpacing(10)
+        summary_layout.setVerticalSpacing(10)
+
+        self.dataset_summary = QLabel("Dataset Size: 25")
+        self.dataset_summary.setObjectName("InfoChip")
+        self.feature_summary = QLabel("Sort Feature: danceability")
+        self.feature_summary.setObjectName("InfoChip")
+        self.merge_summary = QLabel("Merge Sort Time: Pending")
+        self.merge_summary.setObjectName("InfoChip")
+        self.quick_summary = QLabel("Quick Sort Time: Pending")
+        self.quick_summary.setObjectName("InfoChip")
+        self.faster_summary = QLabel("Faster Algorithm: Pending")
+        self.faster_summary.setObjectName("InfoChip")
+        self.preview_summary = QLabel("Preview Rows: 25")
+        self.preview_summary.setObjectName("InfoChip")
+
+        summary_layout.addWidget(self.dataset_summary, 0, 0)
+        summary_layout.addWidget(self.feature_summary, 0, 1)
+        summary_layout.addWidget(self.merge_summary, 1, 0)
+        summary_layout.addWidget(self.quick_summary, 1, 1)
+        summary_layout.addWidget(self.faster_summary, 2, 0)
+        summary_layout.addWidget(self.preview_summary, 2, 1)
 
         self.table = QTableWidget()
         self.table.setColumnCount(4)
@@ -57,9 +94,13 @@ class PlaylistPanel(QFrame):
         self.table.setFocusPolicy(Qt.NoFocus)
         self.table.setStyleSheet(self.DEFAULT_SELECTION_STYLESHEET)
 
-        layout.addWidget(eyebrow)
-        layout.addWidget(title)
+        layout.addWidget(self.eyebrow)
+        layout.addWidget(self.title)
+        layout.addWidget(self.subtitle)
+        layout.addWidget(self.summary_panel)
         layout.addWidget(self.table)
+
+        self.set_workspace_mode(performance_mode=False, dataset_size=25, feature="danceability")
 
     def begin_animation_highlighting(self) -> None:
         self.table.clearSelection()
@@ -72,6 +113,7 @@ class PlaylistPanel(QFrame):
     def load_songs(self, songs: list[Song], feature: str = "danceability") -> None:
         self.current_songs = songs[:]
         self.current_feature = feature
+        self._highlighted_rows.clear()
 
         self.table.setUpdatesEnabled(False)
         self.table.clearSelection()
@@ -84,6 +126,75 @@ class PlaylistPanel(QFrame):
 
         self.table.resizeColumnsToContents()
         self.table.setUpdatesEnabled(True)
+
+    def set_workspace_mode(
+        self,
+        performance_mode: bool,
+        dataset_size: int,
+        feature: str,
+        preview_limit: int | None = None,
+    ) -> None:
+        preview_rows = preview_limit if preview_limit is not None else dataset_size
+        self.dataset_summary.setText(f"Dataset Size: {dataset_size:,}")
+        self.feature_summary.setText(f"Sort Feature: {feature}")
+        self.preview_summary.setText(f"Preview Rows: {preview_rows:,}")
+
+        if performance_mode:
+            self.eyebrow.setText("Analysis")
+            self.title.setText("Benchmark Workspace")
+            self.subtitle.setText(
+                "Large datasets use benchmark analysis with a preview table instead of step playback."
+            )
+            self.summary_panel.setVisible(True)
+            self.clear_benchmark_summary()
+        else:
+            self.eyebrow.setText("Queue")
+            self.title.setText("Curated Playlist Workspace")
+            self.subtitle.setText("Full playlist preview with animation-ready row tracking.")
+            self.summary_panel.setVisible(False)
+            self.clear_benchmark_summary()
+
+    def clear_benchmark_summary(self) -> None:
+        self.merge_summary.setText("Merge Sort Time: Pending")
+        self.quick_summary.setText("Quick Sort Time: Pending")
+        self.faster_summary.setText("Faster Algorithm: Pending")
+
+    def set_benchmark_summary(
+        self,
+        dataset_size: int,
+        feature: str,
+        preview_rows: int,
+        merge_runtime_ms: int | None = None,
+        quick_runtime_ms: int | None = None,
+        quick_summary_text: str | None = None,
+        faster_text: str | None = None,
+    ) -> None:
+        self.dataset_summary.setText(f"Dataset Size: {dataset_size:,}")
+        self.feature_summary.setText(f"Sort Feature: {feature}")
+        self.preview_summary.setText(f"Preview Rows: {preview_rows:,}")
+
+        self.merge_summary.setText(
+            self._format_runtime_label("Merge Sort Time", merge_runtime_ms)
+        )
+        self.quick_summary.setText(
+            quick_summary_text
+            if quick_summary_text is not None
+            else self._format_runtime_label("Quick Sort Time", quick_runtime_ms)
+        )
+
+        faster_label = "Faster Algorithm: Pending"
+        if merge_runtime_ms is not None and quick_runtime_ms is not None:
+            if merge_runtime_ms < quick_runtime_ms:
+                faster_label = "Faster Algorithm: Merge Sort"
+            elif quick_runtime_ms < merge_runtime_ms:
+                faster_label = "Faster Algorithm: Quick Sort"
+            else:
+                faster_label = "Faster Algorithm: Tie"
+
+        if faster_text is not None:
+            faster_label = faster_text
+
+        self.faster_summary.setText(faster_label)
 
     def _write_song_to_row(self, row_index: int, song: Song) -> None:
         song_item = QTableWidgetItem(song.name)
@@ -110,7 +221,8 @@ class PlaylistPanel(QFrame):
     def clear_all_highlights(self) -> None:
         self.table.clearSelection()
         self.table.setStyleSheet(self.DEFAULT_SELECTION_STYLESHEET)
-        for row in range(self.table.rowCount()):
+        rows_to_clear = self._highlighted_rows or set(range(self.table.rowCount()))
+        for row in rows_to_clear:
             self._style_row(
                 row=row,
                 background=QColor(0, 0, 0, 0),
@@ -118,54 +230,43 @@ class PlaylistPanel(QFrame):
                 accent_foreground=QColor("#c7ffd8"),
                 bold=False,
             )
+        self._highlighted_rows.clear()
 
     def highlight_compare(self, left_row: int, right_row: int) -> None:
         self.clear_all_highlights()
         compare_color = "#7c5d06"
         compare_foreground = QColor("#fff7cc")
-        self._set_animation_selection_style(compare_color, "#fff7cc")
-        self.table.selectRow(left_row)
-        self.table.selectRow(right_row)
-        self._style_row(left_row, compare_color, compare_foreground, compare_foreground, True)
-        self._style_row(right_row, compare_color, compare_foreground, compare_foreground, True)
+        self._apply_row_highlight(left_row, compare_color, compare_foreground, compare_foreground, True)
+        self._apply_row_highlight(right_row, compare_color, compare_foreground, compare_foreground, True)
 
     def highlight_overwrite(self, row: int) -> None:
         self.clear_all_highlights()
         overwrite_color = "#174ea6"
         overwrite_foreground = QColor("#eff6ff")
-        self._set_animation_selection_style(overwrite_color, "#eff6ff")
-        self.table.selectRow(row)
-        self._style_row(row, overwrite_color, overwrite_foreground, overwrite_foreground, True)
+        self._apply_row_highlight(row, overwrite_color, overwrite_foreground, overwrite_foreground, True)
 
     def highlight_move(self, source_row: int, target_row: int) -> None:
         self.clear_all_highlights()
         move_color = "#4b5563"
         move_foreground = QColor("#f8fafc")
-        self._set_animation_selection_style(move_color, "#f8fafc")
-        self.table.selectRow(source_row)
-        self.table.selectRow(target_row)
-        self._style_row(source_row, move_color, move_foreground, move_foreground, True)
-        self._style_row(target_row, move_color, move_foreground, QColor("#dbeafe"), True)
+        self._apply_row_highlight(source_row, move_color, move_foreground, move_foreground, True)
+        self._apply_row_highlight(target_row, move_color, move_foreground, QColor("#dbeafe"), True)
 
     def highlight_merge_region(self, left: int, right: int) -> None:
         self.clear_all_highlights()
         merge_color = "#5b2a86"
         merge_foreground = QColor("#f5e9ff")
-        self._set_animation_selection_style(merge_color, "#f5e9ff")
 
         for row in range(left, right + 1):
-            self.table.selectRow(row)
-            self._style_row(row, merge_color, merge_foreground, merge_foreground, True)
+            self._apply_row_highlight(row, merge_color, merge_foreground, merge_foreground, True)
 
     def highlight_sorted_range(self, left: int, right: int) -> None:
         self.clear_all_highlights()
         sorted_color = "#166534"
         sorted_foreground = QColor("#ecfdf5")
-        self._set_animation_selection_style(sorted_color, "#ecfdf5")
 
         for row in range(left, right + 1):
-            self.table.selectRow(row)
-            self._style_row(row, sorted_color, sorted_foreground, sorted_foreground, True)
+            self._apply_row_highlight(row, sorted_color, sorted_foreground, sorted_foreground, True)
 
     def update_song_at_index(self, row_index: int, song: Song) -> None:
         if 0 <= row_index < len(self.current_songs):
@@ -200,13 +301,18 @@ class PlaylistPanel(QFrame):
                 else:
                     item.setForeground(QColor(foreground))
 
-    def _set_animation_selection_style(self, background_color: str, foreground_color: str) -> None:
-        self.table.setStyleSheet(
-            f"""
-            QTableWidget::item:selected {{
-                background-color: {background_color};
-                color: {foreground_color};
-                border-radius: 14px;
-            }}
-            """
-        )
+    def _apply_row_highlight(
+        self,
+        row: int,
+        background: str,
+        foreground: QColor,
+        accent_foreground: QColor,
+        bold: bool,
+    ) -> None:
+        self._style_row(row, QColor(background), foreground, accent_foreground, bold)
+        self._highlighted_rows.add(row)
+
+    def _format_runtime_label(self, label: str, runtime_ms: int | None) -> str:
+        if runtime_ms is None:
+            return f"{label}: Pending"
+        return f"{label}: {runtime_ms / 1000:.2f}s"

@@ -13,6 +13,7 @@ class MetricsPanel(QFrame):
 
         title = QLabel("Session Metrics")
         title.setObjectName("SectionTitle")
+        title.setProperty("surface", "transparent")
 
         self.comparisons = QLabel("Comparisons: 0")
         self.comparisons.setObjectName("InfoChip")

@@ -10,7 +10,8 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("SoundSeekers")
-        self.resize(1450, 860)
+        self.resize(1620, 860)
+        self.setMinimumSize(1180, 680)
 
         self.setStyleSheet(APP_STYLESHEET)
 
