@@ -135,6 +135,7 @@ void quickSort(vector<Song>& v,string d,int h,int l){
     }
 }
 
+//add pragma once to song or move song.h to this file
 int main(){
     vector<Song> v=load_datafile();
     string s="energy";
