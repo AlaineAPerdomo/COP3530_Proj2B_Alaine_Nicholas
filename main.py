@@ -2,7 +2,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from src.app.window import MainWindow
+from src.presentation.window import MainWindow
 from src.data.filters import filter_valid_songs
 from src.data.loader import load_csv_rows
 from src.data.parser import parse_songs
