@@ -17,12 +17,12 @@ from src.presentation.sidebar import SidebarPanel
 
 
 class MainLayout(QWidget):
-    DEFAULT_ANIMATION_SPEED_MS = 160
-    VISUALIZATION_LIMIT = 50
+    DEFAULT_ANIMATION_SPEED_MS = 1450
+    VISUALIZATION_LIMIT = 6
     DEFAULT_FEATURE = "danceability"
     DEFAULT_ALGORITHM = "Merge Sort"
     DEFAULT_ORDER = "Ascending"
-    DEFAULT_SAMPLE_SIZE = 25
+    DEFAULT_SAMPLE_SIZE = 6
     BENCHMARK_PREVIEW_LIMIT = 20
 
     def __init__(self, songs: list[Song]):
@@ -82,8 +82,15 @@ class MainLayout(QWidget):
         self.sidebar.compare_button.clicked.connect(self.compare_algorithms)
         self.sidebar.shuffle_button.clicked.connect(self.shuffle_playlist)
         self.sidebar.reset_button.clicked.connect(self.reset_playlist)
+        self.sidebar.algorithm_dropdown.currentTextChanged.connect(self.change_algorithm)
         self.sidebar.feature_dropdown.currentTextChanged.connect(self.change_feature)
         self.sidebar.sample_knob.valueChanged.connect(self.preview_dataset_mode)
+        self.playlist.merge_visualizer.back_button.clicked.connect(self.previous_animation_step)
+        self.playlist.merge_visualizer.play_pause_button.clicked.connect(self.toggle_animation_playback)
+        self.playlist.merge_visualizer.next_button.clicked.connect(self.step_animation)
+        self.playlist.quick_visualizer.back_button.clicked.connect(self.previous_animation_step)
+        self.playlist.quick_visualizer.play_pause_button.clicked.connect(self.toggle_animation_playback)
+        self.playlist.quick_visualizer.next_button.clicked.connect(self.step_animation)
 
     def handle_song_selection(self) -> None:
         selected_rows = self.playlist.table.selectionModel().selectedRows()
@@ -96,6 +103,10 @@ class MainLayout(QWidget):
         self.current_feature = feature
         self.header.set_feature(feature)
         self.playlist.load_songs(self.visual_songs, feature=feature)
+        self._update_mode_ui()
+
+    def change_algorithm(self, algorithm: str) -> None:
+        self.header.set_algorithm(algorithm)
         self._update_mode_ui()
 
     def load_dataset_sample(self) -> None:
@@ -171,18 +182,20 @@ class MainLayout(QWidget):
         self.metrics.set_steps(0)
         self.metrics.set_runtime_ms(0)
         self.detail_panel.reset_view()
+        self.update_animation_controls(0, 0, False, False)
 
     def run_merge_sort_animation(self) -> None:
         if self.benchmark_thread is not None or self.animation_thread is not None:
             return
 
         self._prepare_run_view()
+        selected_algorithm = self.sidebar.algorithm_dropdown.currentText()
 
         if len(self.original_songs) > self.VISUALIZATION_LIMIT:
             self.run_selected_benchmark()
             return
 
-        self.header.set_algorithm("Merge Sort")
+        self.header.set_algorithm(selected_algorithm)
         self.header.set_status("Preparing Animation")
         self._set_benchmark_controls_enabled(False)
 
@@ -190,6 +203,7 @@ class MainLayout(QWidget):
             songs=self.visual_songs,
             feature=self.current_feature,
             ascending=self.sidebar.order_dropdown.currentText() == "Ascending",
+            algorithm=selected_algorithm,
         )
         thread = QThread(self)
         worker.moveToThread(thread)
@@ -233,6 +247,11 @@ class MainLayout(QWidget):
 
     def prepare_for_animation(self) -> None:
         self.visual_songs = self.original_songs[:]
+        self.playlist.prepare_animation_stage(
+            algorithm=self.sidebar.algorithm_dropdown.currentText(),
+            songs=self.visual_songs,
+            feature=self.current_feature,
+        )
         self.playlist.begin_animation_highlighting()
         self.playlist.clear_all_highlights()
 
@@ -242,6 +261,12 @@ class MainLayout(QWidget):
         self.playlist.highlight_sorted_range(0, len(self.visual_songs) - 1)
         self.playlist.end_animation_highlighting()
         self._focus_song_row(0)
+        self.update_animation_controls(
+            current_step=self.animator.current_step_index if self.animator is not None else 0,
+            total_steps=len(self.animator.steps) if self.animator is not None else 0,
+            is_playing=False,
+            ready=False,
+        )
 
     def update_status(self, status: str) -> None:
         self.header.set_status(status)
@@ -262,31 +287,31 @@ class MainLayout(QWidget):
         self.metrics.set_runtime_ms(runtime_ms)
 
     def apply_sort_step(self, step: SortStep) -> None:
+        selected_algorithm = self.sidebar.algorithm_dropdown.currentText()
+        if selected_algorithm == "Quick Sort":
+            self._apply_quick_sort_step(step)
+            return
+
         step_type = step.step_type
         payload = step.payload
 
-        if step_type == "compare":
+        if step_type == "focus_segment":
+            self._focus_song_row(payload["left"])
+            self.playlist.apply_animation_step("Merge Sort", step, self.visual_songs, self.current_feature)
+
+        elif step_type == "merge_focus":
+            self._focus_song_row(payload["left"])
+            self.playlist.apply_animation_step("Merge Sort", step, self.visual_songs, self.current_feature)
+
+        elif step_type == "compare":
             self._focus_song_row(payload["left_index"])
-            self.playlist.highlight_compare(
-                payload["left_index"],
-                payload["right_index"],
-            )
+            self.playlist.apply_animation_step("Merge Sort", step, self.visual_songs, self.current_feature)
 
         elif step_type == "split":
             self._focus_song_row(payload["left"])
-            self.playlist.highlight_merge_region(
-                payload["left"],
-                payload["right"],
-            )
+            self.playlist.apply_animation_step("Merge Sort", step, self.visual_songs, self.current_feature)
 
-        elif step_type in {"take_left", "take_right"}:
-            self._focus_song_row(payload["target_index"])
-            self.playlist.highlight_move(
-                payload["source_index"],
-                payload["target_index"],
-            )
-
-        elif step_type == "overwrite":
+        elif step_type == "write":
             row_index = payload["index"]
             song_id = payload["song_id"]
 
@@ -295,14 +320,34 @@ class MainLayout(QWidget):
                 self.visual_songs[row_index] = matching_song
                 self.playlist.update_song_at_index(row_index, matching_song)
                 self._focus_song_row(row_index)
-                self.playlist.highlight_overwrite(row_index)
+                self.playlist.apply_animation_step("Merge Sort", step, self.visual_songs, self.current_feature)
 
-        elif step_type == "sorted_range":
+        elif step_type in {"merge_complete", "final"}:
             self._focus_song_row(payload["left"])
-            self.playlist.highlight_sorted_range(
-                payload["left"],
-                payload["right"],
-            )
+            self.playlist.apply_animation_step("Merge Sort", step, self.visual_songs, self.current_feature)
+
+    def _apply_quick_sort_step(self, step: SortStep) -> None:
+        payload = step.payload
+        snapshot_song_ids = payload.get("snapshot_song_ids")
+        if snapshot_song_ids:
+            self.visual_songs = [
+                self.song_lookup[song_id]
+                for song_id in snapshot_song_ids
+                if song_id in self.song_lookup
+            ]
+
+        if step.step_type in {"focus_segment", "choose_pivot", "partition_done", "final"}:
+            self._focus_song_row(payload.get("left", 0))
+        elif step.step_type == "compare":
+            self._focus_song_row(payload.get("left_index", payload.get("left", 0)))
+        elif step.step_type in {"move_left", "move_right"}:
+            self._focus_song_row(payload.get("current_index", payload.get("left", 0)))
+        elif step.step_type == "place_pivot":
+            self._focus_song_row(payload.get("pivot_index", payload.get("left", 0)))
+        elif step.step_type == "swap":
+            self._focus_song_row(payload.get("left_index", payload.get("left", 0)))
+
+        self.playlist.apply_animation_step("Quick Sort", step, self.visual_songs, self.current_feature)
 
     def _build_column_scroll_area(self, object_name: str, content_widget: QWidget) -> QScrollArea:
         scroll_area = QScrollArea()
@@ -348,11 +393,28 @@ class MainLayout(QWidget):
             performance_mode=performance_mode,
             dataset_size=len(self.original_songs),
             feature=self.current_feature,
+            algorithm=self.sidebar.algorithm_dropdown.currentText(),
             preview_limit=preview_count,
         )
 
     def preview_dataset_mode(self, _value: int) -> None:
         self._update_mode_ui()
+
+    def previous_animation_step(self) -> None:
+        if self.animator is not None:
+            self.animator.previous_step()
+
+    def toggle_animation_playback(self) -> None:
+        if self.animator is None:
+            return
+        if self.animator.timer.isActive():
+            self.animator.pause()
+        else:
+            self.animator.play()
+
+    def step_animation(self) -> None:
+        if self.animator is not None:
+            self.animator.next_step()
 
     def _start_benchmark(self, mode: str, algorithm: str = "Merge Sort") -> None:
         if self.benchmark_thread is not None or self.animation_thread is not None:
@@ -444,11 +506,12 @@ class MainLayout(QWidget):
             layout_controller=self,
             speed_ms=self.DEFAULT_ANIMATION_SPEED_MS,
         )
-        self.animator.start()
+        self.animator.start(auto_play=False)
 
     def _handle_animation_failed(self, error_text: str) -> None:
         self.header.set_status(f"Animation Failed: {error_text}")
         self._set_benchmark_controls_enabled(True)
+        self.update_animation_controls(0, 0, False, False)
 
     def _clear_animation_thread(self) -> None:
         self.animation_worker = None
@@ -472,6 +535,11 @@ class MainLayout(QWidget):
         self.playlist.end_animation_highlighting()
         self.playlist.clear_all_highlights()
         self.playlist.table.clearSelection()
+        self.playlist.prepare_animation_stage(
+            algorithm=self.sidebar.algorithm_dropdown.currentText(),
+            songs=self.visual_songs,
+            feature=self.current_feature,
+        )
         self.detail_panel.reset_view()
         self.metrics.set_comparisons(0)
         self.metrics.set_moves(0)
@@ -479,6 +547,27 @@ class MainLayout(QWidget):
         self.metrics.set_steps(0)
         self.metrics.set_runtime_ms(0)
         self.header.set_status("Preparing Selection")
+        self.update_animation_controls(0, 0, False, False)
+
+    def update_animation_controls(
+        self,
+        current_step: int,
+        total_steps: int,
+        is_playing: bool,
+        ready: bool,
+    ) -> None:
+        self.playlist.merge_visualizer.set_playback_state(
+            current_step=current_step,
+            total_steps=total_steps,
+            is_playing=is_playing,
+            ready=ready,
+        )
+        self.playlist.quick_visualizer.set_playback_state(
+            current_step=current_step,
+            total_steps=total_steps,
+            is_playing=is_playing,
+            ready=ready,
+        )
 
     def _focus_song_row(self, row_index: int) -> None:
         if 0 <= row_index < len(self.visual_songs):

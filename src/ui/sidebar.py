@@ -13,8 +13,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from src.presentation.helpers import set_transparent_surface
-
 
 class SampleSizeDial(QDial):
     def __init__(self):
@@ -102,16 +100,15 @@ class SampleSizeDial(QDial):
 
 class SidebarPanel(QFrame):
     MIN_SAMPLE_SIZE = 5
-    VISUALIZATION_LIMIT = 6
-    FINE_DIAL_STEPS_PER_SAMPLE = 18
-    FINE_DIAL_SPAN = (VISUALIZATION_LIMIT - MIN_SAMPLE_SIZE) * FINE_DIAL_STEPS_PER_SAMPLE
+    VISUALIZATION_LIMIT = 50
+    FINE_DIAL_SPAN = VISUALIZATION_LIMIT - MIN_SAMPLE_SIZE
     COMPRESSED_DIAL_STEPS = 160
 
     def __init__(self):
         super().__init__()
         self.setObjectName("SidebarPanel")
-        self.setMinimumWidth(240)
-        self.setMaximumWidth(290)
+        self.setMinimumWidth(220)
+        self.setMaximumWidth(300)
         self._sample_max_size = 500
 
         layout = QVBoxLayout(self)
@@ -151,48 +148,45 @@ class SidebarPanel(QFrame):
         sample_row = QWidget()
         sample_row_layout = QHBoxLayout(sample_row)
         sample_row_layout.setContentsMargins(0, 0, 0, 0)
-        sample_row_layout.setSpacing(12)
+        sample_row_layout.setSpacing(10)
 
         knob_column = QWidget()
         knob_column.setObjectName("KnobColumn")
         knob_layout = QVBoxLayout(knob_column)
         knob_layout.setContentsMargins(0, 0, 0, 0)
-        knob_layout.setSpacing(6)
+        knob_layout.setSpacing(8)
         knob_layout.setAlignment(Qt.AlignCenter)
 
-        self.sample_value_label = QLabel("6")
+        self.sample_value_label = QLabel("25")
         self.sample_value_label.setObjectName("ModeChip")
         self.sample_value_label.setAlignment(Qt.AlignCenter)
-        self.sample_value_label.setMinimumHeight(40)
 
         self.sample_mode_label = QLabel("Animation Mode")
         self.sample_mode_label.setObjectName("ModeChip")
         self.sample_mode_label.setAlignment(Qt.AlignCenter)
-        self.sample_mode_label.setWordWrap(True)
-        self.sample_mode_label.setMinimumHeight(40)
 
         self.sample_knob = SampleSizeDial()
         self.sample_knob.setRange(0, self._dial_maximum())
-        self.sample_knob.setValue(self._sample_size_to_dial_position(6))
+        self.sample_knob.setValue(self._sample_size_to_dial_position(25))
         self.sample_knob.setWrapping(False)
         self.sample_knob.setPageStep(1)
-        self.sample_knob.setFixedSize(98, 98)
+        self.sample_knob.setFixedSize(104, 104)
         self.sample_knob.valueChanged.connect(self._update_sample_size_ui)
 
         knob_shell = QFrame()
         knob_shell.setObjectName("KnobShell")
-        knob_shell.setFixedSize(116, 116)
+        knob_shell.setFixedSize(124, 124)
         knob_shell_layout = QVBoxLayout(knob_shell)
         knob_shell_layout.setContentsMargins(0, 0, 0, 0)
         knob_shell_layout.setAlignment(Qt.AlignCenter)
         knob_shell_layout.addWidget(self.sample_knob)
 
-        min_max_label = QLabel("min 5 / max 500")
+        min_max_label = QLabel("Range: 5 to 500 songs")
         min_max_label.setObjectName("KnobCaption")
         min_max_label.setAlignment(Qt.AlignCenter)
 
         animation_note = QLabel(
-            "Step-by-step animation available for up to 6 songs."
+            "Step-by-step animation available for up to 50 songs."
         )
         animation_note.setObjectName("KnobNote")
         animation_note.setWordWrap(True)
@@ -205,7 +199,7 @@ class SidebarPanel(QFrame):
         sample_meta_column = QWidget()
         sample_meta_layout = QVBoxLayout(sample_meta_column)
         sample_meta_layout.setContentsMargins(0, 0, 0, 0)
-        sample_meta_layout.setSpacing(10)
+        sample_meta_layout.setSpacing(8)
         sample_meta_layout.addWidget(self.sample_value_label)
         sample_meta_layout.addWidget(self.sample_mode_label)
         sample_meta_layout.addWidget(animation_note)
@@ -216,7 +210,9 @@ class SidebarPanel(QFrame):
         actions_label = QLabel("Available Actions")
         actions_label.setObjectName("SectionTitle")
 
-        self.animate_button = QPushButton("Run")
+        self.load_button = QPushButton("Load Playlist")
+        self.load_button.setObjectName("SecondaryButton")
+        self.animate_button = QPushButton("Animate Sorting Algorithm")
         self.animate_button.setObjectName("PrimaryButton")
         self.animate_button.setMinimumWidth(190)
         self.compare_button = QPushButton("Compare Algorithms")
@@ -225,40 +221,6 @@ class SidebarPanel(QFrame):
         self.shuffle_button.setObjectName("SecondaryButton")
         self.reset_button = QPushButton("Reset")
         self.reset_button.setObjectName("SecondaryButton")
-
-        self.animation_guide = QFrame()
-        self.animation_guide.setObjectName("Card")
-        guide_layout = QVBoxLayout(self.animation_guide)
-        guide_layout.setContentsMargins(14, 14, 14, 14)
-        guide_layout.setSpacing(8)
-
-        guide_title = QLabel("Animation Guide")
-        guide_title.setObjectName("SectionTitle")
-
-        guide_text = QLabel(
-            "Merge sort splits the playlist into smaller groups, compares songs, "
-            "then writes them back in order. Row highlights show the active step."
-        )
-        guide_text.setObjectName("MutedText")
-        guide_text.setWordWrap(True)
-
-        compare_hint = QLabel("Compare: two songs are being checked.")
-        compare_hint.setObjectName("MutedText")
-        compare_hint.setWordWrap(True)
-
-        overwrite_hint = QLabel("Overwrite: a song is written into its new spot.")
-        overwrite_hint.setObjectName("MutedText")
-        overwrite_hint.setWordWrap(True)
-
-        sorted_hint = QLabel("Sorted: this section is confirmed in order.")
-        sorted_hint.setObjectName("MutedText")
-        sorted_hint.setWordWrap(True)
-
-        guide_layout.addWidget(guide_title)
-        guide_layout.addWidget(guide_text)
-        guide_layout.addWidget(compare_hint)
-        guide_layout.addWidget(overwrite_hint)
-        guide_layout.addWidget(sorted_hint)
 
         layout.addWidget(title)
         layout.addSpacing(8)
@@ -276,38 +238,17 @@ class SidebarPanel(QFrame):
         layout.addWidget(sample_row)
 
         layout.addWidget(actions_label)
+        layout.addWidget(self.load_button)
         layout.addWidget(self.animate_button)
         layout.addWidget(self.compare_button)
         layout.addWidget(self.shuffle_button)
         layout.addWidget(self.reset_button)
 
         layout.addStretch()
-        layout.addWidget(self.animation_guide)
-
-        set_transparent_surface(
-            title,
-            algorithm_label,
-            feature_label,
-            order_label,
-            sample_label,
-            sample_row,
-            knob_column,
-            min_max_label,
-            animation_note,
-            sample_meta_column,
-            actions_label,
-            guide_title,
-            guide_text,
-            compare_hint,
-            overwrite_hint,
-            sorted_hint,
-        )
 
         self._sample_min_max_label = min_max_label
         self._animation_note_label = animation_note
-        self._animation_guide = self.animation_guide
         self._update_sample_size_ui(self.sample_knob.value())
-        self.set_layout_mode(performance_mode=False)
 
     def set_sample_size_limit(self, max_size: int) -> None:
         self._sample_max_size = max(self.MIN_SAMPLE_SIZE, max_size)
@@ -333,14 +274,18 @@ class SidebarPanel(QFrame):
         self.sample_knob.setToolTip(
             f"Sample Size: {sample_value} (min {minimum}, max {maximum})"
         )
-        self._sample_min_max_label.setText(f"min {minimum} / max {maximum}")
+        self._sample_min_max_label.setText(f"Range: {minimum:,} to {maximum:,} songs")
         self.set_sort_mode(sample_value <= self.VISUALIZATION_LIMIT)
 
     def set_sort_mode(self, visual_mode: bool) -> None:
         if visual_mode:
-            self.animate_button.setText("Run")
+            self.load_button.setVisible(True)
+            self.load_button.setEnabled(True)
+            self.load_button.setText("Load Playlist")
+            self.load_button.setToolTip("Load the selected playlist sample for animation.")
+            self.animate_button.setText("Animate Sorting Algorithm")
             self.animate_button.setProperty("sortMode", "visual")
-            self.animate_button.setToolTip("Open the animation workspace for the current setup.")
+            self.animate_button.setToolTip("Record steps and animate the selected sorting algorithm.")
             self.animate_button.setVisible(True)
             self.animate_button.setEnabled(True)
             self.compare_button.setVisible(False)
@@ -351,45 +296,36 @@ class SidebarPanel(QFrame):
             self.sample_mode_label.setProperty("modeState", "animation")
             self.sample_value_label.setProperty("modeState", "animation")
             self._animation_note_label.setText(
-                "Step-by-step sorting available for up to 6 songs."
+                "Step-by-step sorting available for up to 50 songs."
             )
-            self._animation_guide.setVisible(True)
         else:
-            self.animate_button.setText("Run")
+            self.load_button.setVisible(False)
+            self.load_button.setEnabled(False)
+            self.animate_button.setText("Run Benchmark")
             self.animate_button.setProperty("sortMode", "performance")
             self.animate_button.setToolTip(
-                "Run the selected analysis for the current dataset."
+                "Large datasets skip animation and run benchmark analysis instead."
             )
             self.animate_button.setVisible(True)
             self.animate_button.setEnabled(True)
-            self.compare_button.setVisible(False)
-            self.compare_button.setEnabled(False)
+            self.compare_button.setVisible(True)
+            self.compare_button.setEnabled(True)
+            self.compare_button.setToolTip(
+                "Benchmark merge sort and quick sort side by side on the selected dataset."
+            )
             self.shuffle_button.setVisible(False)
             self.shuffle_button.setEnabled(False)
             self.sample_mode_label.setText("Performance Mode")
             self.sample_mode_label.setProperty("modeState", "performance")
             self.sample_value_label.setProperty("modeState", "performance")
             self._animation_note_label.setText(
-                "Animation is disabled above 6 songs. Use benchmark tools below."
+                "Animation is disabled above 50 songs. Use benchmark tools below."
             )
-            self._animation_guide.setVisible(False)
 
         self._refresh_widget_style(self.animate_button)
         self._refresh_widget_style(self.compare_button)
         self._refresh_widget_style(self.sample_mode_label)
         self._refresh_widget_style(self.sample_value_label)
-
-    def set_layout_mode(self, performance_mode: bool) -> None:
-        self.setMinimumWidth(240 if performance_mode else 220)
-        self.setMaximumWidth(290 if performance_mode else 300)
-
-        knob_size = 98 if performance_mode else 104
-        shell_size = 116 if performance_mode else 124
-        self.sample_knob.setFixedSize(knob_size, knob_size)
-        self.findChild(QFrame, "KnobShell").setFixedSize(shell_size, shell_size)
-
-        self.sample_value_label.setMinimumHeight(40 if performance_mode else 0)
-        self.sample_mode_label.setMinimumHeight(40 if performance_mode else 0)
 
     def _refresh_widget_style(self, widget: QWidget) -> None:
         widget.style().unpolish(widget)
@@ -398,22 +334,15 @@ class SidebarPanel(QFrame):
 
     def _dial_maximum(self) -> int:
         if self._sample_max_size <= self.VISUALIZATION_LIMIT:
-            return (
-                (self._sample_max_size - self.MIN_SAMPLE_SIZE)
-                * self.FINE_DIAL_STEPS_PER_SAMPLE
-            )
+            return self._sample_max_size - self.MIN_SAMPLE_SIZE
         return self.FINE_DIAL_SPAN + self.COMPRESSED_DIAL_STEPS
 
     def _dial_position_to_sample_size(self, dial_position: int) -> int:
         if self._sample_max_size <= self.VISUALIZATION_LIMIT:
-            return self.MIN_SAMPLE_SIZE + round(
-                dial_position / self.FINE_DIAL_STEPS_PER_SAMPLE
-            )
+            return self.MIN_SAMPLE_SIZE + dial_position
 
         if dial_position <= self.FINE_DIAL_SPAN:
-            return self.MIN_SAMPLE_SIZE + round(
-                dial_position / self.FINE_DIAL_STEPS_PER_SAMPLE
-            )
+            return self.MIN_SAMPLE_SIZE + dial_position
 
         coarse_position = dial_position - self.FINE_DIAL_SPAN
         coarse_span = max(1, self.COMPRESSED_DIAL_STEPS)
@@ -426,14 +355,10 @@ class SidebarPanel(QFrame):
         sample_size = max(self.MIN_SAMPLE_SIZE, min(sample_size, self._sample_max_size))
 
         if self._sample_max_size <= self.VISUALIZATION_LIMIT:
-            return (
-                sample_size - self.MIN_SAMPLE_SIZE
-            ) * self.FINE_DIAL_STEPS_PER_SAMPLE
+            return sample_size - self.MIN_SAMPLE_SIZE
 
         if sample_size <= self.VISUALIZATION_LIMIT:
-            return (
-                sample_size - self.MIN_SAMPLE_SIZE
-            ) * self.FINE_DIAL_STEPS_PER_SAMPLE
+            return sample_size - self.MIN_SAMPLE_SIZE
 
         value_span = max(1, self._sample_max_size - self.VISUALIZATION_LIMIT)
         ratio = (sample_size - self.VISUALIZATION_LIMIT) / value_span

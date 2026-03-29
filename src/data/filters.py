@@ -10,8 +10,7 @@ def sample_songs(songs: list[Song], sample_size: int) -> list[Song]:
 
 def filter_valid_songs(songs: list[Song]) -> list[Song]:
     """
-    Basic Phase 1 validity filter.
-    Keeps songs with a name and artist.
+    Filter - Keeps songs with a name and artist.
     """
     valid_songs = []
 

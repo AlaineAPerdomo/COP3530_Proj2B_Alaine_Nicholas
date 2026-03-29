@@ -25,24 +25,48 @@ def merge_sort_with_steps(
     recorder = StepRecorder()
 
     if songs_copy:
+        recorder.record(
+            "focus_segment",
+            left=0,
+            right=len(songs_copy) - 1,
+            merge_left=0,
+            merge_mid=(len(songs_copy) - 1) // 2,
+            merge_right=len(songs_copy) - 1,
+            depth=0,
+        )
+        _record_split_phase(
+            left_index=0,
+            right_index=len(songs_copy) - 1,
+            depth=0,
+            recorder=recorder,
+        )
         _merge_sort_recursive(
             songs=songs_copy,
             left_index=0,
             right_index=len(songs_copy) - 1,
             feature=feature,
             ascending=ascending,
+            depth=0,
             recorder=recorder,
+        )
+
+        recorder.record(
+            "final",
+            left=0,
+            right=len(songs_copy) - 1,
+            merge_left=0,
+            merge_mid=(len(songs_copy) - 1) // 2,
+            merge_right=len(songs_copy) - 1,
+            depth=0,
         )
 
     return songs_copy, recorder.get_steps()
 
 
-def _merge_sort_recursive(
-    songs: list[Song],
+def _record_split_phase(
     left_index: int,
     right_index: int,
-    feature: str,
-    ascending: bool,
+    depth: int,
     recorder: StepRecorder,
 ) -> None:
     if left_index >= right_index:
@@ -55,17 +79,54 @@ def _merge_sort_recursive(
         left=left_index,
         mid=midpoint,
         right=right_index,
+        merge_left=left_index,
+        merge_mid=midpoint,
+        merge_right=right_index,
+        depth=depth,
     )
 
-    _merge_sort_recursive(songs, left_index, midpoint, feature, ascending, recorder)
-    _merge_sort_recursive(songs, midpoint + 1, right_index, feature, ascending, recorder)
+    _record_split_phase(left_index, midpoint, depth + 1, recorder)
+    _record_split_phase(midpoint + 1, right_index, depth + 1, recorder)
 
-    _merge(songs, left_index, midpoint, right_index, feature, ascending, recorder)
+
+def _merge_sort_recursive(
+    songs: list[Song],
+    left_index: int,
+    right_index: int,
+    feature: str,
+    ascending: bool,
+    depth: int,
+    recorder: StepRecorder,
+) -> None:
+    if left_index >= right_index:
+        return
+
+    midpoint = (left_index + right_index) // 2
+
+    _merge_sort_recursive(songs, left_index, midpoint, feature, ascending, depth + 1, recorder)
+    _merge_sort_recursive(songs, midpoint + 1, right_index, feature, ascending, depth + 1, recorder)
 
     recorder.record(
-        "sorted_range",
+        "merge_focus",
+        left=left_index,
+        mid=midpoint,
+        right=right_index,
+        merge_left=left_index,
+        merge_mid=midpoint,
+        merge_right=right_index,
+        depth=depth,
+    )
+
+    _merge(songs, left_index, midpoint, right_index, feature, ascending, depth, recorder)
+
+    recorder.record(
+        "merge_complete",
         left=left_index,
         right=right_index,
+        merge_left=left_index,
+        merge_mid=midpoint,
+        merge_right=right_index,
+        depth=depth,
     )
 
 
@@ -76,6 +137,7 @@ def _merge(
     right_index: int,
     feature: str,
     ascending: bool,
+    depth: int,
     recorder: StepRecorder,
 ) -> None:
     left_half = songs[left_index:midpoint + 1]
@@ -96,30 +158,42 @@ def _merge(
             "compare",
             left_index=left_index + left_pointer,
             right_index=midpoint + 1 + right_pointer,
+            merge_left=left_index,
+            merge_mid=midpoint,
+            merge_right=right_index,
+            depth=depth,
         )
 
         if should_take_left(left_value, right_value, ascending):
+            songs[merged_pointer] = left_song
             recorder.record(
-                "take_left",
+                "write",
                 source_index=left_index + left_pointer,
                 target_index=merged_pointer,
+                index=merged_pointer,
+                merge_left=left_index,
+                merge_mid=midpoint,
+                merge_right=right_index,
+                song_id=left_song.id,
+                from_side="left",
+                depth=depth,
             )
-            songs[merged_pointer] = left_song
             left_pointer += 1
         else:
+            songs[merged_pointer] = right_song
             recorder.record(
-                "take_right",
+                "write",
                 source_index=midpoint + 1 + right_pointer,
                 target_index=merged_pointer,
+                index=merged_pointer,
+                merge_left=left_index,
+                merge_mid=midpoint,
+                merge_right=right_index,
+                song_id=right_song.id,
+                from_side="right",
+                depth=depth,
             )
-            songs[merged_pointer] = right_song
             right_pointer += 1
-
-        recorder.record(
-            "overwrite",
-            index=merged_pointer,
-            song_id=songs[merged_pointer].id,
-        )
 
         merged_pointer += 1
 
@@ -127,18 +201,19 @@ def _merge(
         left_song = left_half[left_pointer]
         left_value = left_song.get_feature_value(feature)
 
-        recorder.record(
-            "take_left",
-            source_index=left_index + left_pointer,
-            target_index=merged_pointer,
-        )
-
         songs[merged_pointer] = left_song
 
         recorder.record(
-            "overwrite",
+            "write",
+            source_index=left_index + left_pointer,
+            target_index=merged_pointer,
             index=merged_pointer,
             song_id=left_song.id,
+            merge_left=left_index,
+            merge_mid=midpoint,
+            merge_right=right_index,
+            from_side="left",
+            depth=depth,
         )
 
         left_pointer += 1
@@ -148,18 +223,19 @@ def _merge(
         right_song = right_half[right_pointer]
         right_value = right_song.get_feature_value(feature)
 
-        recorder.record(
-            "take_right",
-            source_index=midpoint + 1 + right_pointer,
-            target_index=merged_pointer,
-        )
-
         songs[merged_pointer] = right_song
 
         recorder.record(
-            "overwrite",
+            "write",
+            source_index=midpoint + 1 + right_pointer,
+            target_index=merged_pointer,
             index=merged_pointer,
             song_id=right_song.id,
+            merge_left=left_index,
+            merge_mid=midpoint,
+            merge_right=right_index,
+            from_side="right",
+            depth=depth,
         )
 
         right_pointer += 1

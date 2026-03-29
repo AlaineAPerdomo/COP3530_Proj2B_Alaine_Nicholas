@@ -154,6 +154,104 @@ QLabel#MetricLabel {
     font-weight: 600;
 }
 
+QFrame#PlaybackStage,
+QFrame#PlaybackLane {
+    background-color: #141416;
+    border: 1px solid #2b2d33;
+    border-radius: 18px;
+}
+
+QWidget#MergeSortCanvas {
+    background-color: transparent;
+    border: none;
+}
+
+QLabel#PlaybackChip {
+    background-color: #1f3a29;
+    border: 1px solid #2b7a4b;
+    border-radius: 11px;
+    color: #c7f9d7;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+QLabel#StageChip {
+    background-color: #1f3a29;
+    border: 1px solid #2b7a4b;
+    border-radius: 16px;
+    color: #c7f9d7;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+QFrame#SongCard {
+    background-color: #1b1c20;
+    border: 1px solid #30333b;
+    border-radius: 16px;
+}
+
+QFrame#SongCard[displayMode="row"] {
+    background-color: #151619;
+    border: 1px solid #262a32;
+    border-radius: 14px;
+}
+
+QFrame#SongCard[highlightKind="active"] {
+    background-color: #3a2711;
+    border: 1px solid #a16207;
+}
+
+QFrame#SongCard[highlightKind="sorted"] {
+    background-color: #14311f;
+    border: 1px solid #2b7a4b;
+}
+
+QFrame#SongCard[highlightKind="pivot"] {
+    background-color: #1e293b;
+    border: 1px solid #3b82f6;
+}
+
+QFrame#SongCard[highlightKind="ghost"] {
+    background-color: rgba(39, 43, 52, 0.45);
+    border: 1px dashed #3a404d;
+}
+
+QLabel#SongCardBadge {
+    background-color: #2f7dff;
+    border-radius: 10px;
+    color: #eef5ff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+}
+
+QLabel#SongCardTitle {
+    color: #f8fafc;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+QLabel#SongCardMeta {
+    color: #aeb7cb;
+    font-size: 11px;
+}
+
+QLabel#SongCardYear {
+    color: #9aa3bb;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 48px;
+}
+
+QLabel#SongCardFeature {
+    color: #c7ffd8;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 74px;
+}
+
 QPushButton {
     background-color: #26272b;
     color: #f6f8ff;
@@ -185,6 +283,22 @@ QPushButton#PrimaryButton[sortMode="performance"]:hover {
 QPushButton#SecondaryButton:hover,
 QPushButton:hover {
     background-color: #303137;
+}
+
+
+
+/* animation panel text hierarchy */
+QFrame#PlaybackStage QLabel#MutedText {
+    color: #b3bacb;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+/* make playback stage feel less bulky */
+QFrame#PlaybackStage {
+    background-color: #131417;
+    border: 1px solid #2a2d33;
+    border-radius: 20px;
 }
 
 QComboBox,
@@ -313,5 +427,4 @@ QHeaderView::section {
     padding: 12px 10px;
     font-weight: 700;
 }
-
 """
